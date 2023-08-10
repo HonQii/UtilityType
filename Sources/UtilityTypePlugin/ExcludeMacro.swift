@@ -9,7 +9,7 @@ public struct ExcludeMacro: MemberMacro {
         in context: Context
     ) throws -> [DeclSyntax] where Declaration : DeclGroupSyntax, Context : MacroExpansionContext {
         guard
-            case .argumentList(let arguments) = node.argument,
+            case .argumentList(let arguments) = node.arguments,
             arguments.count >= 2,
             let string = arguments.first?.expression.as(StringLiteralExprSyntax.self),
             string.segments.count == 1,
@@ -36,19 +36,19 @@ public struct ExcludeMacro: MemberMacro {
             throw CustomError.message(#"@Exclude should attach to Enum)"#)
         }
 
-        let typeName = enumDecl.identifier.with(\.trailingTrivia, [])
+        let typeName = enumDecl.name.with(\.trailingTrivia, [])
         let access = enumDecl.modifiers?.first(where: \.isNeededAccessLevelModifier)
         let excludedCases = enumDecl.cases.filter { enumCase in
-            !cases.contains { c in enumCase.identifier.text == c }
+            !cases.contains { c in enumCase.name.text == c }
         }
 
         let syntax = try EnumDeclSyntax(
             "\(access)enum \(name)",
             membersBuilder: {
                 // case .one(Int)
-                MemberDeclListSyntax(
+                MemberBlockItemListSyntax(
                     excludedCases.map { excludedCase in
-                        MemberDeclListItemSyntax(
+                        MemberBlockItemSyntax(
                             decl: EnumCaseDeclSyntax(
                                 elements: EnumCaseElementListSyntax(
                                     [excludedCase]
@@ -62,32 +62,32 @@ public struct ExcludeMacro: MemberMacro {
                         try SwitchExprSyntax("switch \(raw: "enumType")") {
                             SwitchCaseListSyntax(try excludedCases.map {
                                 excludedCase in
-                                let identifier = excludedCase.identifier
-                                let parameters = excludedCase.associatedValue?.parameterList
+                                let identifier = excludedCase.name
+                                let parameters = excludedCase.parameterClause?.parameters
 
                                 return .switchCase(
                                     SwitchCaseSyntax(
                                         label: .case(
                                             SwitchCaseLabelSyntax(
-                                                caseItems: CaseItemListSyntax(itemsBuilder: {
+                                                caseItems: SwitchCaseItemListSyntax(itemsBuilder: {
                                                     if let parameters {
                                                         // case .one(let param1):
-                                                        CaseItemSyntax(
+                                                        SwitchCaseItemSyntax(
                                                             pattern: ExpressionPatternSyntax(
                                                                 expression: FunctionCallExprSyntax(
                                                                     calledExpression: MemberAccessExprSyntax(
                                                                         name: identifier
                                                                     ),
                                                                     leftParen: "(",
-                                                                    argumentList: TupleExprElementListSyntax(
+                                                                    arguments: LabeledExprListSyntax(
                                                                         parameters.enumerated().map { (index, _) in
-                                                                            TupleExprElementSyntax(
-                                                                                expression: UnresolvedPatternExprSyntax(
+                                                                            LabeledExprSyntax(
+                                                                                expression: PatternExprSyntax(
                                                                                     pattern: ValueBindingPatternSyntax(
-                                                                                        bindingKeyword: TokenSyntax(
+                                                                                        bindingSpecifier: TokenSyntax(
                                                                                             stringLiteral: "let"
                                                                                         ),
-                                                                                        valuePattern: IdentifierPatternSyntax(
+                                                                                        pattern: IdentifierPatternSyntax(
                                                                                             identifier: TokenSyntax(
                                                                                                 stringLiteral: "param\(index)"
                                                                                             )
@@ -104,7 +104,7 @@ public struct ExcludeMacro: MemberMacro {
                                                         )
                                                     } else {
                                                         // case .one:
-                                                        CaseItemSyntax(
+                                                        SwitchCaseItemSyntax(
                                                             pattern: ExpressionPatternSyntax(
                                                                 expression: MemberAccessExprSyntax(
                                                                     name: identifier
@@ -123,8 +123,8 @@ public struct ExcludeMacro: MemberMacro {
                                                         SequenceExprSyntax(
                                                             elements: ExprListSyntax(
                                                                 [
-                                                                    IdentifierExprSyntax(identifier: .init(stringLiteral: "self")),
-                                                                    AssignmentExprSyntax(assignToken: .equalToken()),
+                                                                    DeclReferenceExprSyntax(baseName: .init(stringLiteral: "self")),
+                                                                    AssignmentExprSyntax(equal: .equalToken()),
                                                                     FunctionCallExprSyntax(
                                                                         calledExpression: MemberAccessExprSyntax(
                                                                             leadingTrivia: [],
@@ -132,12 +132,12 @@ public struct ExcludeMacro: MemberMacro {
                                                                             trailingTrivia: []
                                                                         ),
                                                                         leftParen: "(",
-                                                                        argumentList: TupleExprElementListSyntax(
+                                                                        arguments: LabeledExprListSyntax(
                                                                             parameters.enumerated().map { (index, parameter: EnumCaseParameterListSyntax.Element) in
-                                                                                TupleExprElementSyntax(
+                                                                                LabeledExprSyntax(
                                                                                     label: parameter.firstName,
                                                                                     colon: parameter.firstName != nil ? .colonToken() : nil,
-                                                                                    expression: IdentifierExprSyntax(identifier: TokenSyntax(stringLiteral: "param\(index)")),
+                                                                                    expression: DeclReferenceExprSyntax(baseName: TokenSyntax(stringLiteral: "param\(index)")),
                                                                                     trailingComma: index + 1 == parameters.count ? nil : .commaToken()
                                                                                 )
                                                                             }
@@ -156,7 +156,7 @@ public struct ExcludeMacro: MemberMacro {
                                                         try SequenceExprSyntax(
                                                             elements: ExprListSyntax(
                                                                 [
-                                                                    IdentifierExprSyntax(identifier: .init(stringLiteral: "self")),
+                                                                    DeclReferenceExprSyntax(baseName: .init(stringLiteral: "self")),
                                                                     AssignmentExprSyntax(),
                                                                     MemberAccessExprSyntax(
                                                                         name: identifier

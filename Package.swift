@@ -7,8 +7,10 @@ import PackageDescription
 let package = Package(
     name: "UtilityType",
     platforms: [
-        .iOS(.v16),
-        .macOS(.v13),
+        .macOS(.v11),
+        .iOS(.v14),
+        .tvOS(.v14),
+        .watchOS(.v7)
     ],
     products: [
         .library(

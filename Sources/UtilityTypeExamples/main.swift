@@ -77,11 +77,11 @@ case nil:
     print("nil")
 }
 
-@Parameters("FunctionArgs")
-@ReturnType("FunctionReturnType")
-func function(a: Int, b: String, c: @escaping () -> Void, e: () -> Void) -> Int {
-    return 1
-}
-
-let returnType = FunctionReturnType(rawValue: 100)
-let args: FunctionArgs = (a: 10, b: "value", c: { print("c") }, e: { print("e") })
+//@Parameters("FunctionArgs")
+//@ReturnType("FunctionReturnType")
+//func function(a: Int, b: String, c: @escaping () -> Void, e: () -> Void) -> Int {
+//    return 1
+//}
+//
+//let returnType = FunctionReturnType(rawValue: 100)
+//let args: FunctionArgs = (a: 10, b: "value", c: { print("c") }, e: { print("e") })
